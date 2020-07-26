@@ -49,29 +49,21 @@ balances = { 'asset': 'BTC', 'free': '0.00000065', 'locked': '0.00000000', 'USDT
 def getTradeInfo(response):
 
     tradeValue = 0 # w/o commission
-    tradeTotal = 0 # w/ commission
+    commissionTotal = 0 # 
+    tradeQuantity = 0 
 
     for i in response['fills']:
         amount = float(i['price']) * float(i['qty'])
         commission = float(i['commission'])
+        quantity = float(i['qty'])
 
         # tally actual realized amount
         tradeValue += (amount - commission)
-        tradeTotal += amount
+        commissionTotal += commission
+        tradeQuantity += quantity
 
     # total amount / qty
-    avgPrice = tradeTotal / float(response['origQty'])
-
     # return float
-    return tradeValue, avgPrice
+    return {'tradeValue': tradeValue, 'commissionTotal': commissionTotal, 'tradeQuantity': tradeQuantity}
 
-maxLotSize = 200
-quantity = 1999
-
-while quantity > maxLotSize:
-    quantity -= maxLotSize
-    print (('quantity {} is bigger than maxLotSize {}').format(quantity, maxLotSize))
-else: 
-    print (('quantity {} is smaller than maxLotSize {}').format(quantity, maxLotSize))
-
-
+print (getTradeInfo(tradeResponse))

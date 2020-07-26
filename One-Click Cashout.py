@@ -18,8 +18,6 @@ def getBalances():
 	for i in account: 
 		if float(i['free']) > 0.001: #exclude dust, should actually get if it's > 0.0001BTC in the future.
 			balances.append(i)
-	
-	
 
 	# # get available pair symbols in a list
 	# for i in pairs:
@@ -42,22 +40,24 @@ def getBalances():
 
 def getTradeInfo(response): #return tradeValue, avgPrice
 
+    
     tradeValue = 0 # w/o commission
-    tradeTotal = 0 # w/ commission
+    commissionTotal = 0 # 
+    tradeQuantity = 0 
 
     for i in response['fills']:
+    	# change from str to float
         amount = float(i['price']) * float(i['qty'])
         commission = float(i['commission'])
+        quantity = float(i['qty'])
 
         # tally actual realized amount
         tradeValue += (amount - commission)
-        tradeTotal += amount
+        commissionTotal += commission
+        tradeQuantity += quantity
 
-    # total amount / qty
-    avgPrice = tradeTotal / float(response['origQty'])
-
-    # return float
-    return tradeValue, avgPrice
+    # return a dict
+    return {'tradeValue': tradeValue, 'commissionTotal': commissionTotal, 'tradeQuantity': tradeQuantity}
 
 def marketSell(symbol, quantity):
 
@@ -81,6 +81,8 @@ def cashMeOutside():
 		quantity = round(float(i['free']), 6)
 		i['tradeValue'] = 0 
 		i['avgPrice'] = 0
+		commission = 0
+		i['tradeQuantity'] = 0
 
 		if ('USD' in i['asset']) == False:
 			symbol = i['asset'] + 'USDT'
@@ -90,28 +92,52 @@ def cashMeOutside():
 			print (('market lot size for {} is {}').format(symbol, maxLotSize))
 
 			# execute market sell 
+
+			# if the total quatity > maxlotSize, excute multiple sell till it's below
 			while quantity > maxLotSize:
 				tradeResponse = marketSell(symbol, maxLotSize)
 				quantity -= maxLotSize
 
+				# check is trade is successful 
 				if isinstance(tradeResponse, dict):
-					# return amount realized and avg price
-					i['tradeValue'], i['avgPrice'] = getTradeInfo(tradeResponse)
-					print (quantity, i['asset'], "trade to USDT for:", i['tradeValue'], "at", i['avgPrice'])
+					tradeResponse = getTradeInfo(tradeResponse)
+
+					# tally trade response dict
+					i['tradeValue'] += tradeResponse['tradeValue']
+					commission += tradeResponse['commissionTotal']
+					i['tradeQuantity'] += tradeResponse['tradeQuantity']
+
+					print (('Trade Summary: {} of {} sold for {}').format(i['tradeQuantity'], symbol, i['tradeValue']))
+
+				# trade failed
 				else:
-					pass
+					print ('Market sell failed')
+
+			# total qantity below maxlotsize, execute one sell
 			else: 
 				tradeResponse = marketSell(symbol, quantity)
 			
-				# catch error
 				if isinstance(tradeResponse, dict):
-					# return amount realized and avg price
-					i['tradeValue'], i['avgPrice'] = getTradeInfo(tradeResponse)
-					print (quantity, i['asset'], "trade to USDT for:", i['tradeValue'], "at", i['avgPrice'])
+					tradeResponse = getTradeInfo(tradeResponse)
+
+					i['tradeValue'] += tradeResponse['tradeValue']
+					commission += tradeResponse['commissionTotal']
+					i['tradeQuantity'] += tradeResponse['tradeQuantity']
+
+					print (('Trade Summary: {} of {} sold for {}').format(i['tradeQuantity'], symbol, i['tradeValue']))
+
 				else:
-					pass
+					print ('Market sell failed')
+
 		else:
 			pass
+ 
+		if i['tradeQuantity'] != 0:
+			i['avgPrice'] = commission / i['tradeQuantity']
+		else: 
+			i['avgPrice'] = 0
+
+
 
 # Test Order 
 # 'asset': 'BTC', 'free': '0.00000065', 'locked': '0.00000000', 'USDT': True}
