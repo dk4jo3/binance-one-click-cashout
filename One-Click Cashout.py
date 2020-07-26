@@ -67,10 +67,12 @@ def marketSell(symbol, quantity):
 			    quantity=quantity,
 			    recvWindow=60000)
 		print (('{} of {} is traded').format(symbol, quantity))
+		tradeResponse = getTradeInfo(tradeResponse)
 		return tradeResponse 
 
 	except Exception as e:
 		print ("Error in line:", e.message)
+		tradeResponse = {'tradeValue': 0, 'commissionTotal': 0, 'tradeQuantity': 0}
 	
 
 
@@ -85,6 +87,7 @@ def cashMeOutside():
 		i['tradeQuantity'] = 0
 
 		if ('USD' in i['asset']) == False:
+			
 			symbol = i['asset'] + 'USDT'
 			symbolInfo = client.get_symbol_info(symbol)['filters']
 			maxLotSize = float(next(item for item in symbolInfo if item["filterType"] == "MARKET_LOT_SIZE")['maxQty'])
@@ -95,39 +98,30 @@ def cashMeOutside():
 
 			# if the total quatity > maxlotSize, excute multiple sell till it's below
 			while quantity > maxLotSize:
+
 				tradeResponse = marketSell(symbol, maxLotSize)
 				quantity -= maxLotSize
 
 				# check is trade is successful 
-				if isinstance(tradeResponse, dict):
-					tradeResponse = getTradeInfo(tradeResponse)
 
-					# tally trade response dict
-					i['tradeValue'] += tradeResponse['tradeValue']
-					commission += tradeResponse['commissionTotal']
-					i['tradeQuantity'] += tradeResponse['tradeQuantity']
+				# tally trade response dict
+				i['tradeValue'] += tradeResponse['tradeValue']
+				commission += tradeResponse['commissionTotal']
+				i['tradeQuantity'] += tradeResponse['tradeQuantity']
 
-					print (('Trade Summary: {} of {} sold for {}').format(i['tradeQuantity'], symbol, i['tradeValue']))
+				print (('Trade Summary: {} of {} sold for {}').format(i['tradeQuantity'], symbol, i['tradeValue']))
 
-				# trade failed
-				else:
-					print ('Market sell failed')
 
 			# total qantity below maxlotsize, execute one sell
 			else: 
 				tradeResponse = marketSell(symbol, quantity)
 			
-				if isinstance(tradeResponse, dict):
-					tradeResponse = getTradeInfo(tradeResponse)
 
-					i['tradeValue'] += tradeResponse['tradeValue']
-					commission += tradeResponse['commissionTotal']
-					i['tradeQuantity'] += tradeResponse['tradeQuantity']
+				i['tradeValue'] += tradeResponse['tradeValue']
+				commission += tradeResponse['commissionTotal']
+				i['tradeQuantity'] += tradeResponse['tradeQuantity']
 
-					print (('Trade Summary: {} of {} sold for {}').format(i['tradeQuantity'], symbol, i['tradeValue']))
-
-				else:
-					print ('Market sell failed')
+				print (('Trade Summary: {} of {} sold for {}').format(i['tradeQuantity'], symbol, i['tradeValue']))
 
 		else:
 			pass
