@@ -19,18 +19,6 @@ def getBalances():
 		if float(i['free']) > 0.001: #exclude dust, should actually get if it's > 0.0001BTC in the future.
 			balances.append(i)
 
-	# # get available pair symbols in a list
-	# for i in pairs:
-	# 	pairSymbols.append(i['symbol'])
-
-
-	# # check is "coin +'USDT'" symbol exits and add T/F to its dict
-	# for i in balances:
-	# 	ticker = i['asset'] + "USDT"
-	# 	if ticker in pairSymbols:
-	# 		i['USDT'] = True
-	# 	else:
-	# 		i['USDT'] = False
 
 	for i in balances:
 		print (i)
@@ -40,7 +28,6 @@ def getBalances():
 
 def getTradeInfo(response): #return tradeValue, avgPrice
 
-    
     tradeValue = 0 # w/o commission
     commissionTotal = 0 # 
     tradeQuantity = 0 
@@ -66,7 +53,6 @@ def marketSell(symbol, quantity):
 			    symbol=symbol,
 			    quantity=quantity,
 			    recvWindow=60000)
-		print (('{} of {} is traded').format(symbol, quantity))
 		tradeResponse = getTradeInfo(tradeResponse)
 		return tradeResponse 
 
@@ -81,9 +67,12 @@ def cashMeOutside():
 
 		# get quantity 
 		quantity = round(float(i['free']), 6)
+		
+		market_price = 0
+
+		i['commission'] = 0
 		i['tradeValue'] = 0 
 		i['avgPrice'] = 0
-		commission = 0
 		i['tradeQuantity'] = 0
 
 		if ('USD' in i['asset']) == False:
@@ -92,7 +81,7 @@ def cashMeOutside():
 			symbolInfo = client.get_symbol_info(symbol)['filters']
 			maxLotSize = float(next(item for item in symbolInfo if item["filterType"] == "MARKET_LOT_SIZE")['maxQty'])
 
-			print (('market lot size for {} is {}').format(symbol, maxLotSize))
+			# print (('market lot size for {} is {}').format(symbol, maxLotSize))
 
 			# execute market sell 
 
@@ -106,10 +95,16 @@ def cashMeOutside():
 
 				# tally trade response dict
 				i['tradeValue'] += tradeResponse['tradeValue']
-				commission += tradeResponse['commissionTotal']
+				i['commission'] += tradeResponse['commissionTotal']
 				i['tradeQuantity'] += tradeResponse['tradeQuantity']
 
-				print (('Trade Summary: {} of {} sold for {}').format(i['tradeQuantity'], symbol, i['tradeValue']))
+
+				# calculate sell price is Q is not 0 
+				if tradeResponse['tradeValue'] > 0:
+					market_price = tradeResponse['tradeValue'] / tradeResponse['tradeQuantity']
+
+
+				print (('{} of {} sold for {} at {}').format(tradeResponse['tradeQuantity'], symbol, tradeResponse['tradeValue'], market_price))
 
 
 			# total qantity below maxlotsize, execute one sell
@@ -118,18 +113,24 @@ def cashMeOutside():
 			
 
 				i['tradeValue'] += tradeResponse['tradeValue']
-				commission += tradeResponse['commissionTotal']
+				i['commission'] += tradeResponse['commissionTotal']
 				i['tradeQuantity'] += tradeResponse['tradeQuantity']
 
-				print (('Trade Summary: {} of {} sold for {}').format(i['tradeQuantity'], symbol, i['tradeValue']))
+				if tradeResponse['tradeValue'] > 0:
+					market_price = tradeResponse['tradeValue'] / tradeResponse['tradeQuantity']
+
+				print (('{} of {} sold for {} at {}').format(tradeResponse['tradeQuantity'], symbol, tradeResponse['tradeValue'], market_price))
 
 		else:
 			pass
- 
+ 	
+ 		# get avg price is Q is not zero
 		if i['tradeQuantity'] != 0:
-			i['avgPrice'] = commission / i['tradeQuantity']
-		else: 
-			i['avgPrice'] = 0
+			i['avgPrice'] = (i['tradeValue'] - i['commission']) / i['tradeQuantity']
+		
+
+	for i in balances:
+		print (i)
 
 
 
@@ -143,5 +144,4 @@ def cashMeOutside():
 getBalances()
 cashMeOutside()
 
-for i in balances:
-	print (i) 
+
