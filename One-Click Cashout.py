@@ -11,9 +11,6 @@ balances = []
 def getBalances():
 	account = client.get_account()['balances']
 
-	pairSymbols = []
-	pairs = client.get_all_tickers()
-	
 	# Should not edit dict it self in a loop.
 	for i in account: 
 		if float(i['free']) > 0.001: #exclude dust, should actually get if it's > 0.0001BTC in the future.
@@ -62,6 +59,9 @@ def marketSell(symbol, quantity):
 
 
 def cashMeOutside(): #main 
+	
+	getBalances()
+
 	for i in balances: 
 
 		# get quantity 
@@ -80,10 +80,7 @@ def cashMeOutside(): #main
 			symbolInfo = client.get_symbol_info(symbol)['filters']
 			maxLotSize = float(next(item for item in symbolInfo if item["filterType"] == "MARKET_LOT_SIZE")['maxQty'])
 
-			# print (('market lot size for {} is {}').format(symbol, maxLotSize))
-
 			# execute market sell 
-
 			# if the total quatity > maxlotSize, excute multiple sell till it's below
 			while quantity > maxLotSize:
 
@@ -131,15 +128,6 @@ def cashMeOutside(): #main
 		print (i)
 
 
-
-# Test Order 
-# 'asset': 'BTC', 'free': '0.00000065', 'locked': '0.00000000', 'USDT': True}
-
-# quantity = 100
-# tradeResponse = client.create_test_order(symbol="BTCUSDT", side="buy", type="MARKET", quantity=quantity) # should be {}
-
-
-getBalances()
 cashMeOutside()
 
 
