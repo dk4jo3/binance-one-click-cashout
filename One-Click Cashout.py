@@ -19,7 +19,6 @@ def getBalances():
 		if float(i['free']) > 0.001: #exclude dust, should actually get if it's > 0.0001BTC in the future.
 			balances.append(i)
 
-
 	for i in balances:
 		print (i)
 
@@ -62,7 +61,7 @@ def marketSell(symbol, quantity):
 	
 
 
-def cashMeOutside():
+def cashMeOutside(): #main 
 	for i in balances: 
 
 		# get quantity 
@@ -98,7 +97,6 @@ def cashMeOutside():
 				i['commission'] += tradeResponse['commissionTotal']
 				i['tradeQuantity'] += tradeResponse['tradeQuantity']
 
-
 				# calculate sell price is Q is not 0 
 				if tradeResponse['tradeValue'] > 0:
 					market_price = tradeResponse['tradeValue'] / tradeResponse['tradeQuantity']
@@ -110,7 +108,6 @@ def cashMeOutside():
 			# total qantity below maxlotsize, execute one sell
 			else: 
 				tradeResponse = marketSell(symbol, quantity)
-			
 
 				i['tradeValue'] += tradeResponse['tradeValue']
 				i['commission'] += tradeResponse['commissionTotal']
@@ -130,6 +127,7 @@ def cashMeOutside():
 		
 
 	for i in balances:
+		print ('-------------------------------')
 		print (i)
 
 
